@@ -40,7 +40,7 @@ const userSchema = new Schema<User>(
     },
     avatar: {
       type: String,
-      default: "",
+      default: "https://api.dicebear.com/7.x/initials/svg?seed=user",
     },
     bio: {
       type: String,
