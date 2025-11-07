@@ -1,25 +1,33 @@
 import jwt, { JwtPayload } from "jsonwebtoken";
+import { NextRequest } from "next/server";
 
 interface DecodedUser extends JwtPayload {
   _id: string;
+  email?: string;
+  username?: string;
 }
 
-export async function verifyToken(req: Request): Promise<{
+export const verifyToken = async (
+  req: NextRequest
+): Promise<{
   valid: boolean;
   decodedToken?: DecodedUser;
-  message?: string;
-}> {
+  message: string;
+}> => {
   try {
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return { valid: false, message: "No token provided" };
+    const token = req.cookies.get("accessToken")?.value;
+
+    if (!token) {
+      return { valid: false, message: "No access token" };
     }
 
-    const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as DecodedUser;
+    const decodedToken = jwt.verify(
+      token,
+      process.env.ACCESS_TOKEN_SECRET as string
+    ) as DecodedUser;
 
-    return { valid: true, decodedToken: decoded };
-  } catch (err) {
-    return { valid: false, message: "Invalid token" };
+    return { valid: true, decodedToken, message: "Success" };
+  } catch (error) {
+    return { valid: false, message: "Invalid or expired token" };
   }
-}
+};
