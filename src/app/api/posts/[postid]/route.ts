@@ -60,19 +60,19 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const post = await.PostModel.findById(params.postId);
-    if(!post){
-        return NextResponse.json({error: "Post not found"}, {status: 401});
-        }
-
-     if (post.user.toString() !== decodedToken?._id) {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-          }
-          return NextResponse.json(
-            { message: "Post updated successfully" },
-            { status: 200 }
+    const post = await PostModel.findById(params.postId);
+    if (!post) {
+      return NextResponse.json({ error: "Post not found" }, { status: 401 });
     }
-    catch (error) {
+
+    if (post.user.toString() !== decodedToken?._id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    return NextResponse.json(
+      { message: "Post updated successfully" },
+      { status: 200 }
+    );
+  } catch (error) {
     return NextResponse.json(
       { error: "failed to update post" },
       { status: 500 }
