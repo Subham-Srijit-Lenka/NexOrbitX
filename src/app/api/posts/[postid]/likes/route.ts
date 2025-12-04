@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/dbConnect";
 import PostModel from "@/models/Posts";
 import { verifyToken } from "@/lib/verifyToken";
-import cloudinary from "@/lib/cloudinary";
-import { tryLoadManifestWithRetries } from "next/dist/server/load-components";
 
 export async function PUT(
   req: NextRequest,
@@ -11,33 +10,48 @@ export async function PUT(
 ) {
   try {
     await dbConnect();
-    const { valid, decodedToken } = await verifyToken(req as any);
 
-    if (!valid) {
+    const { valid, decodedToken } = await verifyToken(req as any);
+    if (!valid || !decodedToken?._id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const postId = params.postId;
+    const userObjectId = new mongoose.Types.ObjectId(decodedToken._id);
+    const userIdStr = userObjectId.toString();
+
     const post = await PostModel.findById(postId);
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    const userId = decodedToken?._id;
+    const isLiked = post.likes.some((id) => id.toString() === userIdStr);
 
-    if (post.likes.includes(userId as any)) {
-      post.likes.pull(userId as any);
+    let updatedPost;
+
+    if (isLiked) {
+      updatedPost = await PostModel.findByIdAndUpdate(
+        postId,
+        { $pull: { likes: userObjectId } },
+        { new: true }
+      );
     } else {
-      post.likes.push(userId as any);
+      updatedPost = await PostModel.findByIdAndUpdate(
+        postId,
+        { $addToSet: { likes: userObjectId } },
+        { new: true }
+      );
     }
-    await post.save();
 
     return NextResponse.json(
-      { message: "Like updated", likes: post.likes.length },
+      {
+        message: isLiked ? "Unliked" : "Liked",
+        likes: updatedPost?.likes.length ?? 0,
+      },
       { status: 200 }
     );
   } catch (error) {
-    console.log(error);
+    console.error("LIKE error:", error);
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }
