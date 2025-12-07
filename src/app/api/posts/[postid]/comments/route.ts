@@ -50,3 +50,13 @@ export async function POST(
     );
   }
 }
+
+export async function GET(_: any, { params }: any) {
+  const { postId } = params;
+
+  const comments = await CommentModel.find({ post: postId })
+    .populate("user", "username profilePic")
+    .sort({ createdAt: -1 });
+
+  return NextResponse.json({ success: true, comments });
+}
