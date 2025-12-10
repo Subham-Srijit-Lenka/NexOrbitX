@@ -46,3 +46,21 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export async function GET(req: Request) {
+  try {
+    await dbConnect();
+    const { valid, decodedToken } = await verifyToken(req as any);
+    if (!valid) {
+      return NextResponse.json({ error: "user not found" }, { status: 401 });
+    }
+
+    const userPosts = await PostModel.find({ user: decodedToken?._id })
+      .sort({ createdAt: -1 })
+      .populate("user", "username avatar");
+    return NextResponse.json({ posts: userPosts }, { status: 200 });
+  } catch (error) {
+    console.error("error", error);
+    return NextResponse.json({ error: "cannot get posts" }, { status: 500 });
+  }
+}
